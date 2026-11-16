@@ -13,7 +13,7 @@ typedef struct Sphere {
 	double radius;
 } Sphere;
 
-bool sphere_hit(Sphere s, R3 r) {
+double sphere_hit(Sphere s, R3 r) {
 	// sphere: x^2 + y^2 + z^2 = r^2
 	// for a center: (C_x-x)^2 + (C_y-y)^2 + (C_z-z)^2 = r^2
 	// from surface point to center: C-P
@@ -33,13 +33,11 @@ bool sphere_hit(Sphere s, R3 r) {
 	double c  = V3dot(oc, oc) - s.radius * s.radius;
 
 	double disc = b * b - 4 * a * c;
-	if (disc < 0)
-		return false;
-
-	double sq = std::sqrt(disc);
-	double t0 = (-b - sq) / (2 * a);
-	double t1 = (-b + sq) / (2 * a);
-	return t0 > 0 || t1 > 0; // eg. does the ray hit the sphere in front of its origin?
+	if (disc < 0) {
+		return -1; // ignore negative time
+	} else {
+		return (-b - sqrt(disc)) / (2 * a); // return the positive result
+	}
 }
 
 void write_color(V3 color) {
@@ -58,13 +56,24 @@ static inline V3 rayat(R3 r, double t) {
 	return r.orig + t * r.dir;
 }
 
-// create a gradient
+Sphere sphere = {
+	{ { 0, 0, 2 } }, 1
+};
+
 V3 ray_color(R3 r) {
-	if (sphere_hit(Sphere{ 0, 0, 1, .5 }, r))
-		return V3{ 1, .5, .5 };
+	double t = sphere_hit(sphere, r);
+	if (t > 0) {
+		V3 N = V3norm(rayat(r, t) - V3(sphere.center));
+		return .5 * V3{
+			{ N.x + 1, N.y + 1, N.z + 1 }
+		}; // color from normal
+	}
+
 	V3     dir = V3norm(r.dir);
 	double a   = .5 * (dir.y + 1);
-	return (1 - a) * V3{ 1, 1, 1 } + a * V3{ .5, .5, 1 }; // lerp between colors
+	return (1 - a) * V3{
+		{ 1, 1, 1 }
+	} + a * V3{ { .5, .5, 1 } }; // lerp between colors
 }
 
 // real and virtual image setup
@@ -75,13 +84,23 @@ double view_height  = 2.0;
 double view_width   = aspect_ratio * view_height;
 
 // camera
-V3 eye    = { 0, 0, 0 };
-V3 up     = { 0, 1, 0 };
-V3 target = { 0, 0, 1 };
+V3 eye = {
+	{ 0, 0, 0 }
+};
+V3 up = {
+	{ 0, 1, 0 }
+};
+V3 target = {
+	{ 0, 0, 1 }
+};
 
 // viewport
-V3 view_u = { view_width, 0, 0 };
-V3 view_v = { 0, -view_height, 0 }; // negative so that it goes from top to bottom
+V3 view_u = {
+	{ view_width, 0, 0 }
+};
+V3 view_v = {
+	{ 0, -view_height, 0 }
+}; // negative so that it goes from top to bottom
 
 // pixel delta / distance between a frag/pixel
 V3 delta_u = view_u / width;
