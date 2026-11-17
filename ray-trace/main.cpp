@@ -26,17 +26,20 @@ double sphere_hit(Sphere s, R3 r) {
 	// a = d.d
 	// b = -2d(C-Q)
 	// c = (C-Q).(C-Q)-r^2
-	// all in terms of t and obviously we can use the quadratic formula:
-	V3     oc = s.center - r.orig; // C - Q
-	double a  = V3dot(r.dir, r.dir);
-	double b  = -2 * V3dot(r.dir, oc);
-	double c  = V3dot(oc, oc) - s.radius * s.radius;
+	// all in terms of t and obviously we can use the quadratic formula.
+	// To make this more efficient, we can remember that a vector dotted against itself is equal to the sqaured length
+	// d = (C-Q) = h so b = -2h
+	// this also means that h = b/-2 = d.(C-Q)
+	V3     oc   = s.center - r.orig; // C - Q
+	double a    = V3mag(r.dir) * V3mag(r.dir);
+	double h    = V3dot(r.dir, oc);
+	double c    = V3mag(oc) * V3mag(oc) - s.radius * s.radius;
+	double disc = h * h - a * c;
 
-	double disc = b * b - 4 * a * c;
 	if (disc < 0) {
 		return -1; // ignore negative time
 	} else {
-		return (-b - sqrt(disc)) / (2 * a); // return the positive result
+		return (h - sqrt(disc)) / a; // return the positive result
 	}
 }
 
@@ -57,7 +60,7 @@ static inline V3 rayat(R3 r, double t) {
 }
 
 Sphere sphere = {
-	{ { 0, 0, 2 } }, 1
+	{ { 0, 0, -1 } }, .5
 };
 
 V3 ray_color(R3 r) {
@@ -91,7 +94,7 @@ V3 up = {
 	{ 0, 1, 0 }
 };
 V3 target = {
-	{ 0, 0, 1 }
+	{ 0, 0, -1 }  // neagtive cause objects are "deeper" into the scene
 };
 
 // viewport
